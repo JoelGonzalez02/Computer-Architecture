@@ -2,12 +2,28 @@
 
 import sys
 
+HLT =  0b00000001
+LDI =  0b10000010
+PRN =  0b01000111
+
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+
+        # 256 bytes of memory
+        self.ram = [0] * 256
+
+        # 8 general-purpose registers + a stack pointer
+        self.reg = [0] * 7 + [0xF4]
+
+        #program counter
+        self.pc = 0
+
+        self.running = False
+
 
     def load(self):
         """Load a program into memory."""
@@ -62,4 +78,33 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        self.running = True
+
+        while self.running:
+            ir = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            self.execute_instruction(ir, operand_a, operand_b)
+
+    def execute_instruction(self, ir, operand_a, operand_b):
+        if ir == HLT:
+            self.running = False
+        elif ir == LDI:
+            self.reg[operand_a] = operand_b
+            self.pc += 2
+        elif ir == PRN:
+            print(self.reg[operand_a])
+            self.pc += 1
+        else:
+            print(f'command {ir} does not exist')
+            sys.exit(1)
+
+        self.pc += 1
+
+
+    def ram_read(self, address):
+        return self.ram[address]
+
+    def ram_write(self, address, data):
+        self.ram[address] = data
