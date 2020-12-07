@@ -78,28 +78,29 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        self.self.running = True
+        self.running = True
 
-        while running:
-            command_to_execute = program[self.pc]
+        while self.running:
+            ir = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
 
-            if command_to_execute == LDI:
-                value_to_save = program[self.pc + 1]
-                register_to_save_in = program[self.pc + 2]
-                self.reg[register_to_save_in] = value_to_save
-                self.pc += 3
-            elif command_to_execute == PRN:
-                register_to_print = program[self.pc + 1]
-                print(f'{self.reg[register_to_print]}')
-                self.pc += 2
-            elif command_to_execute == HLT:
-                self.running = False
-            else:
-                print(f'Unknown command {command_to_execute')
-                sys.exit(1)
+            self.execute_instruction(ir, operand_a, operand_b)
 
-                
+    def execute_instruction(self, ir, operand_a, operand_b):
+        if ir == HLT:
+            self.running = False
+        elif ir == LDI:
+            self.reg[operand_a] = operand_b
+            self.pc += 2
+        elif ir == PRN:
+            print(self.reg[operand_a])
+            self.pc += 1
+        else:
+            print(f'command {ir} does not exist')
+            sys.exit(1)
 
+        self.pc += 1
 
 
     def ram_read(self, address):
