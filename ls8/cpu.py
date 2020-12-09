@@ -6,6 +6,8 @@ HLT =  0b00000001
 LDI =  0b10000010
 PRN =  0b01000111
 MUL =  0b10100010
+PUSH = 0b01000101
+POP =  0b01000110
 
 
 class CPU:
@@ -25,6 +27,17 @@ class CPU:
 
         self.running = False
 
+        self.sp = 7
+
+        self.hash_table = {}
+        self.hash_table[HLT] = self.handle_HLT
+        self.hash_table[LDI] = self.handle_LDI
+        self.hash_table[PRN] = self.handle_PRN
+        self.hash_table[MUL] = self.handle_MUL
+        self.hash_table[PUSH] = self.handle_PUSH
+        self.hash_table[POP] = self.handle_POP
+
+
 
     def load(self, filename):
         """Load a program into memory."""
@@ -33,24 +46,16 @@ class CPU:
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # # From print8.ls8
-            # 0b10000010, # LDI R0,8
-            # 0b00000000,
-            # 0b00001000,
-            # 0b01000111, # PRN R0
-            # 0b00000000,
-            # 0b00000001, # HLT
-        ]
+        program = []
 
         try:
             with open(filename) as f:
                 for line in f:
                     comment_split = line.split('#')
-                    maybe_bin_num = comment_split[0]
+                    maybe_binary_num = comment_split[0]
 
                     try:
-                        x = int(maybe_bin_num, 2)
+                        x = int(maybe_binary_num, 2)
                         program.append(x)
                     except:
                         continue
@@ -61,9 +66,8 @@ class CPU:
         for instruction in program:
             self.ram[address] = instruction
             address += 1
-
-    
-
+        
+ 
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -71,8 +75,9 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
-        elif op = 'MUL':
+        elif op == 'MUL':
             self.reg[reg_a] *= self.reg[reg_b]
+            self.pc += 3
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -98,6 +103,7 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+
         self.running = True
 
         while self.running:
@@ -105,26 +111,38 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            self.execute_instruction(ir, operand_a, operand_b)
+            if ir in self.hash_table:
+                self.hash_table[ir](operand_a, operand_b)
+            else:
+                print(f'invalid instruction {ir}')
+                self.pc += 1
+                pass
 
-    def execute_instruction(self, ir, operand_a, operand_b):
-        if ir == HLT:
-            self.running = False
-        elif ir == LDI:
-            self.reg[operand_a] = operand_b
-            self.pc += 2
-        elif ir == PRN:
-            print(self.reg[operand_a])
-            self.pc += 1
-        elif ir == MUL:
-            self.alu('MUL', operand_a, operand_b)
-            self.pc += 2
-        else:
-            print(f'command {ir} does not exist')
-            sys.exit(1)
 
-        self.pc += 1
+    def handle_HLT(self, args):
+        self.running = False
 
+    def handle_LDI(self, *args):
+        self.reg[args[0]] = args[1]
+        self.pc += 3
+
+    def handle_PRN(self, *args):
+        print(self.reg[args[0]])
+        self.pc += 2
+
+    def handle_MUL(self, *args):
+        self.alu('MUL', args[0], args[1])
+        self.pc += 3
+
+    def handle_PUSH(self, *args):
+        self.reg[self.sp] -= 1
+        self.ram[self.reg[self.sp]] = self.reg[args[0]]
+        self.pc += 2
+
+    def handle_POP(self, *args):
+        self.reg[args[0]] = self.ram[self.reg[self.sp]]
+        self.reg[self.sp] += 1
+        self.pc += 2
 
     def ram_read(self, address):
         return self.ram[address]
