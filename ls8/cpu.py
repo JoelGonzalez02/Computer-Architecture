@@ -8,6 +8,8 @@ PRN =  0b01000111
 MUL =  0b10100010
 PUSH = 0b01000101
 POP =  0b01000110
+CALL = 0b01010000
+RET =  0b00010001
 
 
 class CPU:
@@ -36,6 +38,8 @@ class CPU:
         self.hash_table[MUL] = self.handle_MUL
         self.hash_table[PUSH] = self.handle_PUSH
         self.hash_table[POP] = self.handle_POP
+        self.hash_table[CALL] = self.handle_CALL
+        self.hash_table[RET] = self.handle_RET
 
 
 
@@ -144,8 +148,22 @@ class CPU:
         self.reg[self.sp] += 1
         self.pc += 2
 
+    def handle_CALL(self, *args):
+        self.sp -= 1
+        self.ram_write(self.pc + 2, self.sp)
+        self.pc = self.reg[args[0]]
+
+    def handle_RET(self, *args):
+        self.pc = self.ram_read(self.sp)
+        self.sp += 1
+
     def ram_read(self, address):
         return self.ram[address]
 
     def ram_write(self, address, data):
         self.ram[address] = data
+
+
+
+
+    
